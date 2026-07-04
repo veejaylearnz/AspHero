@@ -1,0 +1,14 @@
+{
+  "books": {
+    "1": {
+      "id": 1,
+      "title": "Advanced AI",
+      "author": "Smith",
+      "year": 2026,
+      "copies": 5
+    }
+  },
+  "members": {},
+  "next_book_id": 2,
+  "next_member_id": 1
+}
