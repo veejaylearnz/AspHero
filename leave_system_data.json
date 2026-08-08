@@ -1,0 +1,39 @@
+{
+    "employees": [
+        {
+            "emp_id": "1234",
+            "name": "Vijay",
+            "designation": "ED",
+            "department": "IB",
+            "join_date": "2026-05-23"
+        }
+    ],
+    "leave_balances": [
+        {
+            "emp_id": "1234",
+            "balance": {
+                "SL": 10,
+                "CL": 12,
+                "PL": 20,
+                "UL": 5,
+                "ML": 90
+            }
+        }
+    ],
+    "leave_requests": [
+        {
+            "request_id": "LR00001",
+            "emp_id": "1234",
+            "leave_type": "CL",
+            "start_date": "2026-05-24",
+            "end_date": "2026-06-03",
+            "reason": "Test",
+            "status": "PENDING",
+            "request_date": "2026-05-23 20:25:05",
+            "approval_date": null,
+            "approved_by": null,
+            "comments": "",
+            "days": 11
+        }
+    ]
+}

@@ -1,0 +1,7 @@
+INSERT INTO stocks.tbl_instrument_static VALUES ('TSLA.O','TESLA,INC','US88160R1014','US','USD')
+INSERT INTO stocks.tbl_instrument_static VALUES ('META.O','META PLATFORMS,INC','US30303M1027','US','USD')
+INSERT INTO stocks.tbl_instrument_static VALUES ('NVDA.O','NVIDIA CORPORATION','US67066G1040','US','USD')
+
+
+	
+INSERT INTO stocks.tbl_instrument_market_data VALUES ('TSLA.O',100,'29May2026',1000,99,101);

@@ -1,0 +1,4 @@
+psycopg2-binary>=2.9
+starlite>=1.15.0
+uvicorn>=0.23.0
+streamlit>=1.27.0
