@@ -1,9 +1,33 @@
 ##Asphero Project: Library Management System with PostgreSQL Backend and Streamlit UI
+import argparse
 import os
+from typing import Any, Dict, Optional
 
 import streamlit as st
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 from library_management_system import Library, PostgresPool
+
+
+class BookPayload(BaseModel):
+    title: str
+    author: str
+    year: int
+    copies: int = 1
+
+
+class MemberPayload(BaseModel):
+    name: str
+    email: str
+
+
+class BorrowPayload(BaseModel):
+    member_id: int
+    book_id: int
+
+
+app = FastAPI(title="Library Management API", version="1.0.0")
 
 
 def get_db_config() -> dict:
@@ -17,16 +41,115 @@ def get_db_config() -> dict:
 
 
 @st.cache_resource
-def get_library(host: str, port: str, dbname: str, user: str, password: str) -> Library:
+def get_library(
+    host: Optional[str] = None,
+    port: Optional[str] = None,
+    dbname: Optional[str] = None,
+    user: Optional[str] = None,
+    password: Optional[str] = None,
+) -> Library:
+    config = get_db_config()
     connection_config = {
-        "host": host,
-        "port": port,
-        "dbname": dbname,
-        "user": user,
-        "password": password,
+        "host": host or config["host"],
+        "port": port or config["port"],
+        "dbname": dbname or config["dbname"],
+        "user": user or config["user"],
+        "password": password or config["password"],
     }
     db = PostgresPool(minconn=1, maxconn=10, **connection_config)
     return Library(db)
+
+
+@app.get("/health")
+def health_check() -> Dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/books")
+def list_books_api() -> list[dict[str, Any]]:
+    library = get_library()
+    return [
+        {
+            "id": book.id,
+            "title": book.title,
+            "author": book.author,
+            "year": book.year,
+            "copies": book.copies,
+        }
+        for book in library.list_books()
+    ]
+
+
+@app.get("/books/{book_id}")
+def get_book_api(book_id: int) -> dict[str, Any]:
+    library = get_library()
+    book = library.book_info(book_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    return {
+        "id": book.id,
+        "title": book.title,
+        "author": book.author,
+        "year": book.year,
+        "copies": book.copies,
+    }
+
+
+@app.post("/books", status_code=201)
+def add_book_api(payload: BookPayload) -> dict[str, Any]:
+    library = get_library()
+    book = library.add_book(payload.title, payload.author, payload.year, payload.copies)
+    return {
+        "id": book.id,
+        "title": book.title,
+        "author": book.author,
+        "year": book.year,
+        "copies": book.copies,
+    }
+
+
+@app.get("/members")
+def list_members_api() -> list[dict[str, Any]]:
+    library = get_library()
+    return [
+        {
+            "id": member.id,
+            "name": member.name,
+            "email": member.email,
+            "borrowed_books": member.borrowed_books,
+        }
+        for member in library.list_members()
+    ]
+
+
+@app.post("/members", status_code=201)
+def register_member_api(payload: MemberPayload) -> dict[str, Any]:
+    library = get_library()
+    member = library.register_member(payload.name, payload.email)
+    return {
+        "id": member.id,
+        "name": member.name,
+        "email": member.email,
+        "borrowed_books": member.borrowed_books,
+    }
+
+
+@app.post("/borrow")
+def borrow_book_api(payload: BorrowPayload) -> dict[str, Any]:
+    library = get_library()
+    message = library.borrow_book(payload.member_id, payload.book_id)
+    if message.startswith("Member"):
+        return {"message": message}
+    raise HTTPException(status_code=400, detail=message)
+
+
+@app.post("/return")
+def return_book_api(payload: BorrowPayload) -> dict[str, Any]:
+    library = get_library()
+    message = library.return_book(payload.member_id, payload.book_id)
+    if message.startswith("Member"):
+        return {"message": message}
+    raise HTTPException(status_code=400, detail=message)
 
 
 def render_books_tab(library: Library) -> None:
@@ -192,6 +315,7 @@ def main() -> None:
     st.set_page_config(page_title="Library Management", layout="wide")
     st.title("Library Management System")
     st.write("Use this UI to manage books, members, borrowing, and returns with a PostgreSQL backend.")
+    st.caption("The FastAPI backend is also available for programmatic access at /docs when running the API server.")
 
     with st.sidebar:
         st.header("Database connection")
@@ -221,5 +345,20 @@ def main() -> None:
         render_details_tab(library)
 
 
+def run_api_server(host: str = "0.0.0.0", port: int = 8000) -> None:
+    import uvicorn
+
+    uvicorn.run(app, host=host, port=port)
+
+
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Run the library management app")
+    parser.add_argument("--api", action="store_true", help="Start the FastAPI backend instead of the Streamlit UI")
+    parser.add_argument("--host", default="0.0.0.0", help="Host for the FastAPI server")
+    parser.add_argument("--port", type=int, default=8000, help="Port for the FastAPI server")
+    args = parser.parse_args()
+
+    if args.api:
+        run_api_server(host=args.host, port=args.port)
+    else:
+        main()

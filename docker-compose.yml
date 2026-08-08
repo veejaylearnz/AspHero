@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: library_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >-
+      streamlit run streamlit_library_app.py --server.address 0.0.0.0 --server.port 8501 --server.headless true
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: library_db
+      PGUSER: postgres
+      PGPASSWORD: admin
+    ports:
+      - "8501:8501"
+    depends_on:
+      - postgres
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >-
+      python streamlit_library_app.py --api --host 0.0.0.0 --port 8000
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: library_db
+      PGUSER: postgres
+      PGPASSWORD: admin
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
